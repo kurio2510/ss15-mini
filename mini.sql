@@ -191,18 +191,23 @@ DELIMITER ;
 -- cn6: Thêm bạn bè
 DELIMITER //
 
-CREATE PROCEDURE sp_add_friend(
-    IN p_user1 INT,
-    IN p_user2 INT
-)
+CREATE TRIGGER tg_before_friend_insert
+BEFORE INSERT ON friends
+FOR EACH ROW
 BEGIN
-    IF p_user1 = p_user2 THEN
+    IF NEW.user_id = NEW.friend_id THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Không thể tự kết bạn';
     END IF;
-
-    INSERT INTO friends(user_id, friend_id, status)
-    VALUES(p_user1, p_user2, 'pending');
+    IF EXISTS (
+        SELECT 1
+        FROM friends
+        WHERE user_id = NEW.friend_id
+          AND friend_id = NEW.user_id
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Đã tồn tại lời mời kết bạn';
+    END IF;
 END //
 
 DELIMITER ;
